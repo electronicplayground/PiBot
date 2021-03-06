@@ -225,7 +225,7 @@ void Back(char cmd) {
 
 void BluetoothComm() {
    if (Serial.available()){ //wait for data received
-    cmd=Serial.read();
+    cmd=Serial.readString()[0];
     Serial.println(cmd);
     //uncomment block bellow to use Serial interface instead of bluetooth. For dev and debugging
    /*if (Serial.available()) {
