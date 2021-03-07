@@ -16,6 +16,9 @@ async def handle(request):
     text = "Hello, " + name
     return web.Response(text=text)
 
+async def index(request):
+    return web.FileResponse('./index.html')
+
 
 class Server(MqttClientMixin):
     def __init__(self):
@@ -28,6 +31,7 @@ class Server(MqttClientMixin):
         )
         # self._app.add_routes([web.get('/', handle),
         #                       web.get('/{name}', handle)])
+        self._app.add_routes([web.get('/', index)])
         self._app.on_startup.append(self.start_background_tasks)
         self._app.on_cleanup.append(self.cleanup_background_tasks)
 
