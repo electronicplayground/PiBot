@@ -52,16 +52,38 @@ class Server(MqttClientMixin):
             print(e)
         print("added to queue")
 
+    async def dance(self, app):
+        #await asyncio.sleep(0)
+        #return
+        count = 0
+        while count < 2:
+            count = count + 1
+            print('dance')
+
+            await asyncio.sleep(5)
+            await self._serial_write_queue.put(5)
+        
+            await asyncio.sleep(1)
+        
+            await self._serial_write_queue.put('L')
+            await asyncio.sleep(2)
+
+            await self._serial_write_queue.put('R')
+            await asyncio.sleep(2)
+
+            await self._serial_write_queue.put('S')
+            await asyncio.sleep(1)
+
     async def mqtt_run(self, app):
         if not self.mqtt_enabled:
             return
         while True:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(2)
             self.loop()
 
     async def read_serial_async(self, app):  
         while True:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.5)
             if self._serial.is_open:
                 #  reads a line from serial and returns byte array
                 # self._serial.write(b'hello\n')
@@ -73,7 +95,7 @@ class Server(MqttClientMixin):
 
     async def serial_read_queue(self, app):
         while True:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.001)
             if not self._serial_read_queue.empty():
                 msg = await self._serial_read_queue.get()
                 self.publish(config[ConfigKeys.MQTT_PUBLISH_TOPIC], msg)
@@ -83,13 +105,15 @@ class Server(MqttClientMixin):
                        
     async def serial_write_queue(self, app):
             while True:
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.001)
                 if not self._serial_write_queue.empty():
                     
                     msg = await self._serial_write_queue.get()
                     print(f"Writing to serial {msg}")
                     if self._serial.is_open:
                         self._serial.write(str.encode(f"{str(msg)}\n"))
+                    else:
+                        print('serial not open')
                     
     async def wshandle(self, request):
         ws = web.WebSocketResponse()
@@ -99,7 +123,7 @@ class Server(MqttClientMixin):
             if msg.type == web.WSMsgType.text:
                 await self._serial_write_queue.put(msg.data)
             elif msg.type == web.WSMsgType.binary:
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.01)
                 # await ws.send_bytes(msg.data)
             elif msg.type == web.WSMsgType.close:
                 break
@@ -124,10 +148,12 @@ class Server(MqttClientMixin):
         app['serial_driver'] = asyncio.create_task(self.read_serial_async(app))
         app['serial_read_queue'] = asyncio.create_task(self.serial_read_queue(app))
         app['serial_write_queue'] = asyncio.create_task(self.serial_write_queue(app))
-        app['mqtt_run'] = asyncio.create_task(self.mqtt_run(app))
+
+        app['dance'] = asyncio.create_task(self.dance(app))
+        #app['mqtt_run'] = asyncio.create_task(self.mqtt_run(app))
 
     async def cleanup_background_tasks(self, app):
-        # await asyncio.sleep(0.1)
+        # await asyncio.sleep(0.01)
         self._serial.close()
         self.disconnect()
         app['serial_driver'].cancel()
@@ -136,8 +162,11 @@ class Server(MqttClientMixin):
         await app['serial_read_queue']
         app['serial_write_queue'].cancel()
         await app['serial_write_queue']
-        app['mqtt_run'].cancel()
-        await app['mqtt_run']
+        #app['mqtt_run'].cancel()
+        #await app['mqtt_run']
+
+        app['dance'].cancel()
+        await app['dance']
 
     def run(self):
         self.initalize_mqtt()

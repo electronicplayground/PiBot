@@ -20,7 +20,7 @@ class ConfigKeys:
     )
 
     DEFAULTS = {
-        SERIAL_PORT: "COM8",
+        SERIAL_PORT: "/dev/ttyACM0",
         SERIAL_BAUD_RATE: 9600,
         WS_PORT: 8001,
         WS_ENDPOINT: '/ws',
